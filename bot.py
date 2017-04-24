@@ -1,5 +1,5 @@
-import socket, ssl, datetime, json, time, re, sqlite3
-from functions import get_sender, get_message, get_name, get_random_joke, react_leet, print_split_lines
+import socket, ssl, datetime, json, time, re, sqlite3, random
+from functions import get_sender, get_message, get_name, get_random_joke, react_leet, print_split_lines, log_urls
 
 
 class bot:
@@ -129,6 +129,30 @@ class bot:
                 time.sleep(5)
             time.sleep(1)
 
+    def send_urls(self, message, sender):
+        try:
+            if "!urls" in message:
+                conn = sqlite3.connect('db.sqlite')
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM urls ORDER BY id DESC LIMIT 5;")
+
+                url_string = "The 5 last urls: "
+                urls = cursor.fetchall()
+                print(urls)
+                current = 1
+                for s in urls:
+                    if len(urls) != current:
+                        current += 1
+                        url_string += s[1] + ", "
+                    else:
+                        url_string += s[1]
+                self.s.send(
+                    bytes("PRIVMSG {} :{}\n\r".format(sender, url_string), "UTF-8"))
+                print(url_string)
+        except Exception as e:
+            print(e)
+
+
     def run_bot(self):
         readbuffer = ""
         self.connect_to_server()
@@ -150,4 +174,5 @@ class bot:
             react_leet(message, self.leets, nick)
             self.respond_roll(message, nick, sender)
             self.send_random_joke(message, sender)
-            self.log_urls(message, sender)
+            log_urls(message, nick)
+            self.send_urls(message, sender)

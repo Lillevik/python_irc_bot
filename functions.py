@@ -57,11 +57,16 @@ def run_bots(bots):
             print(bot.host)
             print("Error: unable to start thread")
 
-def log_urls(inputString, sender):
-    urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',inputString)
-    conn = sqlite3.connect('db.sqlite')
-    cursor = conn.cursor()
-    for url in urls:
-        date = datetime.datetime.now().strftime("%d/%m/%Y")
-        cursor.execute("INSERT INTO urls (url, nick, added_date) VALUES (?,?,?);", (url, sender, date))
-    conn.commit()
+
+def log_urls(input_string, sender):
+    urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', str(input_string))
+    if len(urls):
+        try:
+            conn = sqlite3.connect('db.sqlite')
+            cursor = conn.cursor()
+            for url in urls:
+                date = datetime.datetime.now().strftime("%d/%m/%Y")
+                cursor.execute("INSERT INTO urls (url, nick, added_date) VALUES (?,?,?);", (url, sender, date))
+            conn.commit()
+        except:
+            print("Error logging urls")
