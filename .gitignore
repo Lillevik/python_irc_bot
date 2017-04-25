@@ -93,3 +93,4 @@ ENV/
 *.db
 
 run.py
+config.py

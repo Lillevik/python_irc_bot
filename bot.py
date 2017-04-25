@@ -1,5 +1,6 @@
 import socket, ssl, datetime, json, time, re, sqlite3, random
-from functions import get_sender, get_message, get_name, get_random_joke, react_leet, print_split_lines, log_urls
+from functions import get_sender, get_message, get_name, get_random_joke, react_leet, print_split_lines
+from urlshortener import shorten_url
 
 
 class bot:
@@ -134,23 +135,50 @@ class bot:
             if "!urls" in message:
                 conn = sqlite3.connect('db.sqlite')
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM urls ORDER BY id DESC LIMIT 5;")
+                cursor.execute("SELECT * FROM urls WHERE hostname = ? AND sender = ? ORDER BY id DESC LIMIT 5;", (self.host,sender))
 
                 url_string = "The 5 last urls: "
                 urls = cursor.fetchall()
-                print(urls)
                 current = 1
                 for s in urls:
                     if len(urls) != current:
                         current += 1
                         url_string += s[1] + ", "
                     else:
-                        url_string += s[1]
+                        url_string += s[1] + "."
                 self.s.send(
                     bytes("PRIVMSG {} :{}\n\r".format(sender, url_string), "UTF-8"))
-                print(url_string)
+        except Exception as e:
+            print(self.host)
+            print(e)
+
+    def log_urls(self, input_string, sender, nick):
+        urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
+                          str(input_string))
+        if len(urls):
+            try:
+                conn = sqlite3.connect('db.sqlite')
+                cursor = conn.cursor()
+                for url in urls:
+                    date = datetime.datetime.now().strftime("%d/%m/%Y")
+                    cursor.execute("INSERT INTO urls (url, nick, added_date, hostname, sender) VALUES (?,?,?,?,?);",
+                                   (url, nick, date, self.host, sender))
+                conn.commit()
+            except Exception as e:
+                print(e)
+                print("Error logging urls")
+
+    def convert_long_url(self, message, sender):
+        try:
+            if "!ushort" in message:
+                words = message.split(" ")
+                short_url = shorten_url(words[1])
+                self.s.send(
+                    bytes("PRIVMSG {} :{}\n\r".format(sender, "Your short url: " + short_url), "UTF-8"))
         except Exception as e:
             print(e)
+
+
 
 
     def run_bot(self):
@@ -174,5 +202,6 @@ class bot:
             react_leet(message, self.leets, nick)
             self.respond_roll(message, nick, sender)
             self.send_random_joke(message, sender)
-            log_urls(message, nick)
+            self.log_urls(message, sender, nick)
             self.send_urls(message, sender)
+            self.convert_long_url(message, sender)
