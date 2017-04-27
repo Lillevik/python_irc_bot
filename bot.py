@@ -134,6 +134,9 @@ class bot:
 
     def send_urls(self, message, sender):
         try:
+            words = [""]
+            if " " in message:
+                words = message.split(" ")
             if "!urls" in message:
                 conn = sqlite3.connect('db.sqlite')
                 cursor = conn.cursor()
@@ -151,6 +154,25 @@ class bot:
                         url_string += s[1] + "."
                 self.s.send(
                     bytes("PRIVMSG {} :{}\n\r".format(sender, url_string), "UTF-8"))
+            if words[0] == "!urls":
+                nick = words [1]
+                conn = sqlite3.connect('db.sqlite')
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM urls WHERE hostname = ? AND sender = ? AND nick = ? ORDER BY id DESC LIMIT 5;",
+                               (self.host, sender, nick))
+
+                url_string = "The 5 last urls from " + nick + " :"
+                urls = cursor.fetchall()
+                current = 1
+                for s in urls:
+                    if len(urls) != current:
+                        current += 1
+                        url_string += s[1] + ", "
+                    else:
+                        url_string += s[1] + "."
+                self.s.send(
+                    bytes("PRIVMSG {} :{}\n\r".format(sender, url_string), "UTF-8"))
+
         except Exception as e:
             print(self.host)
             print(e)
