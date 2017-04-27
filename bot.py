@@ -137,7 +137,7 @@ class bot:
             words = [""]
             if " " in message:
                 words = message.split(" ")
-            if "!urls" in message:
+            if "!urls" in message and len(words) < 2:
                 conn = sqlite3.connect('db.sqlite')
                 cursor = conn.cursor()
                 cursor.execute("SELECT * FROM urls WHERE hostname = ? AND sender = ? ORDER BY id DESC LIMIT 5;",
@@ -154,8 +154,9 @@ class bot:
                         url_string += s[1] + "."
                 self.s.send(
                     bytes("PRIVMSG {} :{}\n\r".format(sender, url_string), "UTF-8"))
-            if words[0] == "!urls":
-                nick = words [1]
+            elif words[0] == "!urls":
+                nick = words[1]
+                print(nick)
                 conn = sqlite3.connect('db.sqlite')
                 cursor = conn.cursor()
                 cursor.execute("SELECT * FROM urls WHERE hostname = ? AND sender = ? AND nick = ? ORDER BY id DESC LIMIT 5;",
@@ -186,8 +187,13 @@ class bot:
                 cursor = conn.cursor()
                 for url in urls:
                     date = datetime.datetime.now().strftime("%d/%m/%Y")
-                    cursor.execute("INSERT INTO urls (url, nick, added_date, hostname, sender) VALUES (?,?,?,?,?);",
-                                   (url, nick, date, self.host, sender))
+                    if len(url) > 100:
+                        short_url = shorten_url(url)
+                        cursor.execute("INSERT INTO urls (url, nick, added_date, hostname, sender) VALUES (?,?,?,?,?);",
+                                       (short_url, nick, date, self.host, sender))
+                    else:
+                        cursor.execute("INSERT INTO urls (url, nick, added_date, hostname, sender) VALUES (?,?,?,?,?);",
+                                       (url, nick, date, self.host, sender))
                 conn.commit()
             except Exception as e:
                 print(e)
