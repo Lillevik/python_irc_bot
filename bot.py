@@ -56,7 +56,9 @@ class bot:
 
     def respond_roll(self, msg, nick, respondTo):
         try:
-            words = msg.split(" ")
+            words = [""]
+            if " " in msg:
+                words = msg.split(" ")
             if msg == '!roll\r':
                 self.s.send(
                     bytes("PRIVMSG {} :{} rolled: {} (1 - 100)\n\r".format(respondTo, nick, random.randint(1, 100)),
@@ -93,7 +95,7 @@ class bot:
                 elif current == last:
                     congr += "and {}.".format(person)
                 current += 1
-            s.send(bytes("PRIVMSG {} :{}\n\r".format(self, self.channel, congr), "UTF-8"))
+            s.send(bytes("PRIVMSG {} :{}\n\r".format(self.channel, congr), "UTF-8"))
             s.send(bytes("PRIVMSG {} :Everyone else, shaaaaaame!\n\r".format(self.channel), "UTF-8"))
         elif len(self.leets) == 0:
             s.send(
@@ -135,7 +137,8 @@ class bot:
             if "!urls" in message:
                 conn = sqlite3.connect('db.sqlite')
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM urls WHERE hostname = ? AND sender = ? ORDER BY id DESC LIMIT 5;", (self.host,sender))
+                cursor.execute("SELECT * FROM urls WHERE hostname = ? AND sender = ? ORDER BY id DESC LIMIT 5;",
+                               (self.host, sender))
 
                 url_string = "The 5 last urls: "
                 urls = cursor.fetchall()
@@ -178,9 +181,6 @@ class bot:
         except Exception as e:
             print(e)
 
-
-
-
     def run_bot(self):
         readbuffer = ""
         self.connect_to_server()
@@ -194,9 +194,9 @@ class bot:
             self.respond_to_ping(temp)
             self.join_channel(temp)
 
-            nick = get_name(temp)
-            message = get_message(temp)
-            sender = get_sender(temp, nick)
+            nick = str(get_name(temp))
+            message = str(get_message(temp))
+            sender = str(get_sender(temp, nick))
 
             self.respond_hello(message, nick, sender)
             react_leet(message, self.leets, nick)
