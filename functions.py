@@ -1,4 +1,5 @@
 import requests, json, datetime, threading
+from datetime import datetime
 
 
 def get_name(msg):
@@ -35,7 +36,7 @@ def get_random_joke():
 def react_leet(msg, a, n):
     if msg:
         if msg.isspace():
-            now = datetime.datetime.now()
+            now = datetime.now()
             if (now.hour == 13) and (now.minute == 37):
                 print("{} is on leet. [{}:{}:{}]".format(n, now.hour, now.minute, now.second))
                 a.append(n)
@@ -46,6 +47,56 @@ def react_leet(msg, a, n):
 def print_split_lines(text):
     for line in text:
         print(line)
+
+
+def update_streak_graph(graph_filename, score_filename, masters):
+    graph_data = {}
+    score_data = {}
+    try:
+        graph_data_file = open(graph_filename, "r")  # Open the JSON file for reading
+        graph_data = json.load(graph_data_file)  # Read the JSON into the buffer
+        graph_data_file.close()  # Close the JSON file
+    except FileNotFoundError:
+        print("Graph file not found...")
+
+    try:
+        score_data_file = open(score_filename, "r")  # Open the JSON file for reading
+        score_data = json.load(score_data_file)  # Read the JSON into the buffer
+        score_data_file.close()  # Close the JSON file
+    except FileNotFoundError:
+        print("Score file not found...")
+
+    current_date = str(datetime.now().date())
+
+    for nick in score_data:
+        tmp = []
+        if nick in masters:
+            print("Check1")
+
+            current_streak = score_data[nick]['streak']
+            try:
+                tmp = graph_data[nick]['graph']
+                tmp.append({current_date: current_streak})
+                graph_data[nick]['graph'] = tmp
+            except KeyError:
+                graph_data[nick] = {'graph': [{current_date: current_streak}]}
+        elif nick not in masters and nick in graph_data:
+            print("Check2")
+            tmp = graph_data[nick]['graph']
+            tmp.append({current_date: 0})
+            graph_data[nick]['graph'] = tmp
+        elif nick in masters and nick not in graph_data:
+            print("Check3")
+            graph_data[nick] = {'graph': [{current_date: 1}]}
+        elif nick not in masters and nick not in graph_data:
+            print("Check4")
+            graph_data[nick] = {'graph': [{current_date: 0}]}
+
+    jsonFile = open(graph_filename, "w+")
+    print(graph_data)
+    jsonFile.write(json.dumps(graph_data))
+    jsonFile.close()
+
 
 
 def run_bots(bots):

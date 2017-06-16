@@ -1,5 +1,5 @@
 import socket, ssl, datetime, json, time, re, sqlite3, random
-from functions import get_sender, get_message, get_name, get_random_joke, react_leet, print_split_lines
+from functions import get_sender, get_message, get_name, get_random_joke, react_leet, print_split_lines, update_streak_graph
 from urlshortener import shorten_url
 
 
@@ -111,9 +111,11 @@ class bot:
             self.update_score(person)
 
         self.send_leet_masters(uniquelist)
-        self.leets = []
-        with open("leetlog/" + self.host + '.json', 'w') as outfile:
+
+        with open("leetlog/" + self.host + '.json', 'w+') as outfile:
             json.dump(self.score, outfile)
+        update_streak_graph("leetlog/" + self.host + '.graph.json', "leetlog/" + self.host + '.json', uniquelist)
+        self.leets = []
         print(self.score)
 
     def send_random_joke(self, msg, sender):
@@ -134,6 +136,8 @@ class bot:
 
     def send_urls(self, message, sender):
         try:
+            url_string = ""
+            urls = []
             words = [""]
             if " " in message:
                 words = message.split(" ")
@@ -145,26 +149,34 @@ class bot:
 
                 url_string = "The 5 last urls: "
                 urls = cursor.fetchall()
-                current = 1
-                for s in urls:
-                    if len(urls) != current:
-                        current += 1
-                        url_string += s[1] + ", "
-                    else:
-                        url_string += s[1] + "."
-                self.s.send(
-                    bytes("PRIVMSG {} :{}\n\r".format(sender, url_string), "UTF-8"))
+                print(urls)
+                if not len(urls):
+                    urls = [("", " nothing to show.")]
+                conn.close()
             elif words[0] == "!urls":
                 nick = words[1]
-                print(nick)
                 conn = sqlite3.connect('db.sqlite')
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM urls WHERE hostname = ? AND sender = ? AND nick = ? ORDER BY id DESC LIMIT 5;",
+                print(type(nick))
+                print(type(sender))
+                print(type(self.host))
+                print(
+                    ("SELECT * FROM urls WHERE hostname = {} AND sender = {} AND nick = {};").format(self.host, sender,
+                                                                                                     nick))
+                cursor.execute("SELECT * FROM urls "
+                               "WHERE hostname = ? AND sender = ? AND nick = ? "
+                               "ORDER BY id DESC LIMIT 5;",
                                (self.host, sender, nick))
 
-                url_string = "The 5 last urls from " + nick + " :"
+                url_string = "The 5 last urls from " + nick + ":"
                 urls = cursor.fetchall()
-                current = 1
+                print(urls)
+                if not len(urls):
+                    urls = [("", " nothing to show.")]
+                conn.close()
+
+            current = 1
+            if len(urls):
                 for s in urls:
                     if len(urls) != current:
                         current += 1
