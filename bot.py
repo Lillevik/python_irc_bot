@@ -16,6 +16,7 @@ class bot:
         self.s = None
         self.leets = []
         self.score = {}
+        self.errors = 0
 
     def load_leet_log(self):
         try:
@@ -41,10 +42,18 @@ class bot:
 
     def join_channel(self, msg):
         try:
-            if "PRIVMSG" not in msg[0]:
-                self.s.send(bytes("JOIN {}\r\n".format(self.channel), "UTF-8"))
+            if len(msg):
+                if "PRIVMSG" not in msg[0] and "PING" not in msg[0]:
+                    print(msg[0])
+                    self.s.send(bytes("JOIN {}\r\n".format(self.channel), "UTF-8"))
         except IndexError:
-            print("IndexError.")
+            print(msg)
+            if self.errors < 5:
+                self.errors = self.errors + 1
+                print('Error trying to join channel.. number of errors: ' + str(self.errors))
+            else:
+                self.connect_to_server()
+                print('Attempting to reconnect..')
 
     def respond_hello(self, m, nick, sender):
         try:
