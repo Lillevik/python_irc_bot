@@ -45,8 +45,9 @@ def react_leet(msg, a, n):
 
 
 def print_split_lines(text):
-    for line in text:
-        print(line)
+    if not 'PING' in text:
+        for line in text:
+            print(line)
 
 
 def update_streak_graph(graph_filename, score_filename, masters):
@@ -71,8 +72,6 @@ def update_streak_graph(graph_filename, score_filename, masters):
     for nick in score_data:
         tmp = []
         if nick in masters:
-            print("Check1")
-
             current_streak = score_data[nick]['streak']
             try:
                 tmp = graph_data[nick]['graph']
@@ -81,15 +80,12 @@ def update_streak_graph(graph_filename, score_filename, masters):
             except KeyError:
                 graph_data[nick] = {'graph': [{current_date: current_streak}]}
         elif nick not in masters and nick in graph_data:
-            print("Check2")
             tmp = graph_data[nick]['graph']
             tmp.append({current_date: 0})
             graph_data[nick]['graph'] = tmp
         elif nick in masters and nick not in graph_data:
-            print("Check3")
             graph_data[nick] = {'graph': [{current_date: 1}]}
         elif nick not in masters and nick not in graph_data:
-            print("Check4")
             graph_data[nick] = {'graph': [{current_date: 0}]}
 
     jsonFile = open(graph_filename, "w+")
