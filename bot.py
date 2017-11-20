@@ -225,7 +225,7 @@ class bot:
 
             self.s.send(bytes("PRIVMSG {} :Forecast from {} to {}\n\r".format(sender, from_time, to_time), "UTF-8"))
             self.s.send(bytes(
-                "PRIVMSG {} :Temp: {} WindDirection: {} WindSpeed: {}".format(sender, (temp + " " + temp_unit),
+                "PRIVMSG {} :Temp: {} WindDirection: {} WindSpeed: {}\n\r".format(sender, (temp + " " + temp_unit),
                                                                               wind_direction, wind_speed), "UTF-8"))
 
     def convert_long_url(self, message, sender):
