@@ -1,5 +1,7 @@
-import socket, ssl, datetime, json, time, re, sqlite3, random
-from functions import get_sender, get_message, get_name, get_random_joke, react_leet, print_split_lines, update_streak_graph
+import socket, ssl, datetime, json, time, re, sqlite3, random, requests, traceback
+from functions import get_sender, get_message, get_name, get_random_joke, react_leet, print_split_lines, \
+    update_streak_graph
+from xml.etree import ElementTree as ET
 from urlshortener import shorten_url
 
 
@@ -153,7 +155,7 @@ class bot:
             if "!urls" in message and len(words) < 2:
                 conn = sqlite3.connect('db.sqlite')
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM urls WHERE hostname = ? AND sender = ? ORDER BY id DESC LIMIT 5;",
+                cursor.execute('SELECT url FROM urls WHERE hostname = ? AND sender = ? ORDER BY id DESC LIMIT 5;',
                                (self.host, sender))
 
                 url_string = "The 5 last urls: "
@@ -163,41 +165,29 @@ class bot:
                     urls = [("", " nothing to show.")]
                 conn.close()
             elif words[0] == "!urls":
-                nick = words[1]
+                nick = words[1].strip()
                 conn = sqlite3.connect('db.sqlite')
                 cursor = conn.cursor()
-                print(type(nick))
-                print(type(sender))
-                print(type(self.host))
-                print(
-                    ("SELECT * FROM urls WHERE hostname = {} AND sender = {} AND nick = {};").format(self.host, sender,
-                                                                                                     nick))
-                cursor.execute("SELECT * FROM urls "
-                               "WHERE hostname = ? AND sender = ? AND nick = ? "
-                               "ORDER BY id DESC LIMIT 5;",
-                               (self.host, sender, nick))
-
+                cursor.execute('SELECT url FROM urls WHERE nick = ? AND hostname = ? AND sender = ? ORDER BY id DESC LIMIT 5;',
+                               (nick, self.host, sender))
                 url_string = "The 5 last urls from " + nick + ":"
                 urls = cursor.fetchall()
-                print(urls)
                 if not len(urls):
                     urls = [("", " nothing to show.")]
                 conn.close()
-
             current = 1
             if len(urls):
                 for s in urls:
                     if len(urls) != current:
                         current += 1
-                        url_string += s[1] + ", "
+                        url_string += s[0] + ", "
                     else:
-                        url_string += s[1] + "."
+                        url_string += s[0] + "."
                 self.s.send(
                     bytes("PRIVMSG {} :{}\n\r".format(sender, url_string), "UTF-8"))
-
         except Exception as e:
             print(self.host)
-            print(e)
+            print(traceback.format_exc())
 
     def log_urls(self, input_string, sender, nick):
         urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
@@ -220,15 +210,46 @@ class bot:
                 print(e)
                 print("Error logging urls")
 
+    def fetch_weather_forecast(self, sender, message):
+        if "!forecast" in message:
+            r = requests.get("http://www.yr.no/place/Norway/Hordaland/Bergen/Bergen/forecast_hour_by_hour.xml")
+            root = ET.fromstring(r.content)
+
+            next_hour = root.find('forecast').find('tabular')[0]
+            from_time = next_hour.attrib['from']
+            to_time = next_hour.attrib['to']
+            temp = next_hour.find('temperature').attrib['value']
+            temp_unit = next_hour.find('temperature').attrib['unit']
+            wind_direction = next_hour.find('windDirection').attrib['name']
+            wind_speed = next_hour.find('windSpeed').attrib['name']
+
+            self.s.send(bytes("PRIVMSG {} :Forecast from {} to {}\n\r".format(sender, from_time, to_time), "UTF-8"))
+            self.s.send(bytes(
+                "PRIVMSG {} :Temp: {} WindDirection: {} WindSpeed: {}".format(sender, (temp + " " + temp_unit),
+                                                                              wind_direction, wind_speed), "UTF-8"))
+
     def convert_long_url(self, message, sender):
         try:
-            if "!ushort" in message:
-                words = message.split(" ")
+            words = message.split(" ")
+            if words[0] == "!u":
                 short_url = shorten_url(words[1])
                 self.s.send(
                     bytes("PRIVMSG {} :{}\n\r".format(sender, "Your short url: " + short_url), "UTF-8"))
         except Exception as e:
             print(e)
+
+    def fetch_course_info(self, sender, message):
+        if "!exam" in message:
+            try:
+                code = message.split(" ")[1].strip().upper()
+                self.respond(sender, "https://eksamen.lillevik.pw/?course=" + code)
+            except Exception as e:
+                self.respond(sender, "Error finding course...")
+                print(traceback.format_exc())
+
+    def respond(self, sender, message):
+        self.s.send(
+            bytes("PRIVMSG {} :{}\n\r".format(sender, message), "UTF-8"))
 
     def run_bot(self):
         readbuffer = ""
@@ -254,3 +275,5 @@ class bot:
             self.log_urls(message, sender, nick)
             self.send_urls(message, sender)
             self.convert_long_url(message, sender)
+            self.fetch_weather_forecast(sender, message)
+            self.fetch_course_info(sender, message)
