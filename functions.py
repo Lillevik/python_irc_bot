@@ -45,8 +45,9 @@ def react_leet(msg, a, n):
 
 
 def print_split_lines(text):
-    for line in text:
-        print(line)
+    if not 'PING' in text:
+        for line in text:
+            print(line)
 
 
 def update_streak_graph(graph_filename, score_filename, masters):

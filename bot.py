@@ -24,7 +24,7 @@ class bot:
         try:
             with open("leetlog/" + self.host + '.json') as data_file:
                 self.score = json.load(data_file)
-                print("Score for: " + self.host + "  " + str(self.score))
+                print("Score for: " + self.host + " is updated.")
         except:
             print("Error: Loading leet log.")
 
