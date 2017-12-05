@@ -223,7 +223,7 @@ class bot:
             wind_direction = next_hour.find('windDirection').attrib['name']
             wind_speed = next_hour.find('windSpeed').attrib['name']
 
-            self.s.send(bytes("PRIVMSG {} :Forecast for the next hour", "UTF-8"))
+            self.s.send(bytes("PRIVMSG {} :Forecast for the next hour\n\r".format(sender), "UTF-8"))
             self.s.send(bytes(
                 "PRIVMSG {} :Temp: {} WindDirection: {} WindSpeed: {}\n\r".format(sender, (temp + " " + temp_unit),
                                                                               wind_direction, wind_speed), "UTF-8"))
