@@ -94,3 +94,5 @@ ENV/
 
 run.py
 config.py
+todo/
+leetlog/

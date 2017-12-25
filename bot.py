@@ -17,15 +17,27 @@ class bot:
         self.sock = socket.socket()
         self.s = None
         self.leets = []
-        self.score = {}
         self.errors = 0
+        self.server_id = 0
 
     def load_leet_log(self):
         try:
-            with open("leetlog/" + self.host + '.json') as data_file:
-                self.score = json.load(data_file)
-                print("Score for: " + self.host + " is updated.")
-        except:
+            conn = sqlite3.connect("leet.db")
+            cursor = conn.cursor()
+            serverid = cursor.execute("SELECT id FROM Server WHERE servername = ? AND channel = ?;",
+                                      (self.host, self.channel.split("#")[1])).fetchone()
+            if serverid:
+                self.server_id = serverid[0]
+            else:
+                cursor.execute("INSERT INTO Server (servername, channel) VALUES (?,?);",
+                               (self.host, self.channel.split("#")[1]))
+                self.server_id = cursor.lastrowid
+
+            conn.commit()
+            conn.close()
+            print(self.server_id)
+        except Exception as e:
+            print(e)
             print("Error: Loading leet log.")
 
     def connect_to_server(self):
@@ -80,17 +92,35 @@ class bot:
         except:
             print('Error rolling.')
 
-    def update_score(self, nick):
-        if nick not in self.score:
-            self.score[nick] = {'score': 1, 'streak': 1}
-        else:
-            self.score[nick]['score'] += 1
-            self.score[nick]['streak'] += 1
+    def update_score(self, nick, streakLost=False):
+        conn = sqlite3.connect("leet.db")
+        cursor = conn.cursor()
+        print(nick)
+        user_score = cursor.execute("""
+        SELECT User.id, Score.score, Score.streak 
+        FROM User JOIN Score ON User.id = Score.user_id
+        WHERE User.nick = ? AND Score.server_id = ?;""", (nick, self.server_id)).fetchone()
 
-    def check_streak(self, unique_list):
-        for nick in self.score:
-            if nick not in unique_list:
-                self.score[nick]['streak'] = 0
+        if not user_score:
+            userid = cursor.execute("SELECT id FROM User WHERE nick = ?;", (nick,)).fetchone()
+            print(userid)
+            if not userid:
+                print("not user")
+                cursor.execute("INSERT INTO User (nick) VALUES (?);", (nick,))
+                uid = cursor.lastrowid
+                cursor.execute("INSERT INTO Score (user_id, server_id) VALUES (?,?);", (uid, self.server_id))
+            else:
+                cursor.execute("INSERT INTO Score (user_id, score, streak, server_id) VALUES (?,?,?,?);",
+                               (userid[0], 1, 1, self.server_id))
+        elif user_score and not streakLost:
+            cursor.execute(
+                "UPDATE  Score SET score = score + 1, streak = streak + 1 WHERE user_id = ? AND server_id = ?;",
+                (user_score[0], self.server_id))
+        elif user_score and streakLost:
+            cursor.execute("UPDATE Score SET streak = 0 WHERE Score.user_id"
+                           " = ? AND Score.server_id = ?;", (user_score[0], self.server_id))
+        conn.commit()
+        conn.close()
 
     def send_leet_masters(self, masters):
         s = self.s
@@ -115,19 +145,27 @@ class bot:
             print(self.score)
 
     def log_winners(self):
-        print(self.score)
+        conn = sqlite3.connect("leet.db")
+        users = conn.cursor().execute("SELECT DISTINCT nick FROM User JOIN Score ON  User.id = Score.user_id "
+                                      "WHERE Score.server_id = ?;", (self.server_id,)).fetchall()
         uniquelist = list(set(self.leets))
-        self.check_streak(uniquelist)
-        for person in uniquelist:
-            self.update_score(person)
-
         self.send_leet_masters(uniquelist)
+        users_list = []
+        for user in users:
+            users_list.append(user)
+        for nick in uniquelist:
+            self.update_score(nick)
 
-        with open("leetlog/" + self.host + '.json', 'w+') as outfile:
-            json.dump(self.score, outfile)
-        update_streak_graph("leetlog/" + self.host + '.graph.json', "leetlog/" + self.host + '.json', uniquelist)
+        for i in range(len(users)):
+            if users[i][0] in uniquelist:
+                del users[i]
+        for nick in users:
+            self.update_score(nick[0], streakLost=True)
+
+        conn.commit()
+        conn.close()
+        update_streak_graph(self.server_id)
         self.leets = []
-        print(self.score)
 
     def send_random_joke(self, msg, sender):
         try:
@@ -140,7 +178,7 @@ class bot:
     def check_time(self):
         while 1:
             d = datetime.datetime.now()
-            if (d.hour == 13) and (d.minute == 38) and (d.second == 5):
+            if (d.hour == 13) and (d.minute == 38) and (d.second == 0):
                 self.log_winners()
                 time.sleep(5)
             time.sleep(1)
@@ -168,8 +206,9 @@ class bot:
                 nick = words[1].strip()
                 conn = sqlite3.connect('db.sqlite')
                 cursor = conn.cursor()
-                cursor.execute('SELECT url FROM urls WHERE nick = ? AND hostname = ? AND sender = ? ORDER BY id DESC LIMIT 5;',
-                               (nick, self.host, sender))
+                cursor.execute(
+                    'SELECT url FROM urls WHERE nick = ? AND hostname = ? AND sender = ? ORDER BY id DESC LIMIT 5;',
+                    (nick, self.host, sender))
                 url_string = "The 5 last urls from " + nick + ":"
                 urls = cursor.fetchall()
                 if not len(urls):
@@ -226,7 +265,7 @@ class bot:
             self.s.send(bytes("PRIVMSG {} :Forecast for the next hour\n\r".format(sender), "UTF-8"))
             self.s.send(bytes(
                 "PRIVMSG {} :Temp: {} WindDirection: {} WindSpeed: {}\n\r".format(sender, (temp + " " + temp_unit),
-                                                                              wind_direction, wind_speed), "UTF-8"))
+                                                                                  wind_direction, wind_speed), "UTF-8"))
 
     def convert_long_url(self, message, sender):
         try:

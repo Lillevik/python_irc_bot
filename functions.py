@@ -1,5 +1,6 @@
 import requests, json, datetime, threading
 from datetime import datetime
+import sqlite3
 
 
 def get_name(msg):
@@ -50,48 +51,19 @@ def print_split_lines(text):
             print(line)
 
 
-def update_streak_graph(graph_filename, score_filename, masters):
-    graph_data = {}
-    score_data = {}
-    try:
-        graph_data_file = open(graph_filename, "r")  # Open the JSON file for reading
-        graph_data = json.load(graph_data_file)  # Read the JSON into the buffer
-        graph_data_file.close()  # Close the JSON file
-    except FileNotFoundError:
-        print("Graph file not found...")
-
-    try:
-        score_data_file = open(score_filename, "r")  # Open the JSON file for reading
-        score_data = json.load(score_data_file)  # Read the JSON into the buffer
-        score_data_file.close()  # Close the JSON file
-    except FileNotFoundError:
-        print("Score file not found...")
-
-    current_date = str(datetime.now().date())
-
-    for nick in score_data:
-        tmp = []
-        if nick in masters:
-            current_streak = score_data[nick]['streak']
-            try:
-                tmp = graph_data[nick]['graph']
-                tmp.append({current_date: current_streak})
-                graph_data[nick]['graph'] = tmp
-            except KeyError:
-                graph_data[nick] = {'graph': [{current_date: current_streak}]}
-        elif nick not in masters and nick in graph_data:
-            tmp = graph_data[nick]['graph']
-            tmp.append({current_date: 0})
-            graph_data[nick]['graph'] = tmp
-        elif nick in masters and nick not in graph_data:
-            graph_data[nick] = {'graph': [{current_date: 1}]}
-        elif nick not in masters and nick not in graph_data:
-            graph_data[nick] = {'graph': [{current_date: 0}]}
-
-    jsonFile = open(graph_filename, "w+")
-    print(graph_data)
-    jsonFile.write(json.dumps(graph_data))
-    jsonFile.close()
+def update_streak_graph(serverid):
+    conn = sqlite3.connect("leet.db")
+    score_data = conn.cursor().execute("""
+    SELECT User.nick, Score.user_id, Score.score, Score.streak, Score.server_id 
+    FROM Score 
+    JOIN User ON Score.user_id = User.id 
+    WHERE server_id = ?;""", (serverid,)).fetchall()
+    now = datetime.now()
+    for score in score_data:
+        conn.execute("INSERT INTO Graph_data (day, streak, user_id, server_id) VALUES (?,?,?,?);",
+                     (now.date(), score[3],score[1], serverid))
+    conn.commit()
+    conn.close()
 
 
 
