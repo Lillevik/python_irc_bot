@@ -105,7 +105,6 @@ class bot:
             userid = cursor.execute("SELECT id FROM User WHERE nick = ?;", (nick,)).fetchone()
             print(userid)
             if not userid:
-                print("not user")
                 cursor.execute("INSERT INTO User (nick) VALUES (?);", (nick,))
                 uid = cursor.lastrowid
                 cursor.execute("INSERT INTO Score (user_id, server_id) VALUES (?,?);", (uid, self.server_id))
@@ -150,17 +149,13 @@ class bot:
                                       "WHERE Score.server_id = ?;", (self.server_id,)).fetchall()
         uniquelist = list(set(self.leets))
         self.send_leet_masters(uniquelist)
-        users_list = []
         for user in users:
-            users_list.append(user)
-        for nick in uniquelist:
-            self.update_score(nick)
-
-        for i in range(len(users)):
-            if users[i][0] in uniquelist:
-                del users[i]
-        for nick in users:
-            self.update_score(nick[0], streakLost=True)
+            nick = user[0]
+            print(nick)
+            if nick in uniquelist:
+                self.update_score(nick)
+            else:
+                self.update_score(nick, streakLost=True)
 
         conn.commit()
         conn.close()
