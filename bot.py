@@ -96,21 +96,28 @@ class bot:
         conn = sqlite3.connect("leet.db")
         cursor = conn.cursor()
         print(nick)
+
+        # Check if there exists a score for the users
         user_score = cursor.execute("""
         SELECT User.id, Score.score, Score.streak 
         FROM User JOIN Score ON User.id = Score.user_id
         WHERE User.nick = ? AND Score.server_id = ?;""", (nick, self.server_id)).fetchone()
 
         if not user_score:
+            print(user_score)
+            # If no score or users exists, create the users and update the score.
             userid = cursor.execute("SELECT id FROM User WHERE nick = ?;", (nick,)).fetchone()
-            print(userid)
+            print("UserID" + str(userid))
+
             if not userid:
                 cursor.execute("INSERT INTO User (nick) VALUES (?);", (nick,))
                 uid = cursor.lastrowid
-                cursor.execute("INSERT INTO Score (user_id, server_id) VALUES (?,?);", (uid, self.server_id))
+                cursor.execute("INSERT INTO Score (user_id, score, streak,server_id) VALUES (?,?);", (uid, 1,1,self.server_id))
+                print("Added " + str(uid) + " as a new user.")
+            # If a users exists, but no score. Add new score.
             else:
                 cursor.execute("INSERT INTO Score (user_id, score, streak, server_id) VALUES (?,?,?,?);",
-                               (userid[0], 1, 1, self.server_id))
+                               (userid, 1, 1, self.server_id))
         elif user_score and not streakLost:
             cursor.execute(
                 "UPDATE  Score SET score = score + 1, streak = streak + 1 WHERE user_id = ? AND server_id = ?;",
@@ -118,6 +125,9 @@ class bot:
         elif user_score and streakLost:
             cursor.execute("UPDATE Score SET streak = 0 WHERE Score.user_id"
                            " = ? AND Score.server_id = ?;", (user_score[0], self.server_id))
+        else:
+            print(user_score)
+
         conn.commit()
         conn.close()
 
@@ -141,7 +151,6 @@ class bot:
             s.send(
                 bytes("PRIVMSG {} :Noone remembered Leet! Shame on everyone! Shaaaame!\n\r".format(self.channel),
                       "UTF-8"))
-            print(self.score)
 
     def log_winners(self):
         conn = sqlite3.connect("leet.db")
@@ -151,11 +160,15 @@ class bot:
         self.send_leet_masters(uniquelist)
         for user in users:
             nick = user[0]
-            print(nick)
             if nick in uniquelist:
                 self.update_score(nick)
+                uniquelist.remove(nick)
             else:
                 self.update_score(nick, streakLost=True)
+
+        for nick in uniquelist:
+            self.update_score(nick)
+
 
         conn.commit()
         conn.close()
