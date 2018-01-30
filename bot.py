@@ -112,7 +112,7 @@ class bot:
             if not userid:
                 cursor.execute("INSERT INTO User (nick) VALUES (?);", (nick,))
                 uid = cursor.lastrowid
-                cursor.execute("INSERT INTO Score (user_id, score, streak,server_id) VALUES (?,?);", (uid, 1,1,self.server_id))
+                cursor.execute("INSERT INTO Score (user_id, score, streak,server_id) VALUES (?,?,?,?);", (uid, 1,1,self.server_id))
                 print("Added " + str(uid) + " as a new user.")
             # If a users exists, but no score. Add new score.
             else:
