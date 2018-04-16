@@ -262,38 +262,49 @@ class bot:
             params = message.rstrip().split(' ')
             if len(params) == 1:
                 r = requests.get("http://www.yr.no/place/Norway/Hordaland/Bergen/Bergen/forecast_hour_by_hour.xml")
-                self.send_yr_xml(sender, r.content)
+                self.send_yr_xml(sender, r.content, 'Bergen sentrum')
 
             elif len(params) == 2:
                 places = query_place_names(params[1])[0]
 
                 if len(places) == 1:
                     url = places[0][1].replace('forecast.xml', 'forecast_hour_by_hour.xml')
-                    print(url)
+                    name = places[0][0]
                     r = requests.get(url)
-                    self.send_yr_xml(sender, r.content)
+                    self.send_yr_xml(sender, r.content, name)
 
                 elif len(places) > 1:
                     response_string = 'Found several places: '
                     for place in places:
                         response_string = response_string + place[0] + ', '
-                    response_string = response_string + ' Pick one or use first as third parameter to pick first. Underscores(_) are used instead of spaces.'
+                    response_string = response_string + ' Pick one using the order they appear(1,2 or 3). Underscores(_) are used instead of spaces.'
                     self.respond(sender, response_string)
-            elif len(params) == 3 and params[2].lower() == 'first':
-                places = query_place_names(params[1])[0]
-                if len(places) >= 1:
-                    url = places[0][1].replace('forecast.xml', 'forecast_hour_by_hour.xml')
-                    print(url)
-                    r = requests.get(url)
-                    self.send_yr_xml(sender, r.content)
+            elif len(params) == 3:
+                index = -1
+                number_input = params[2]
+                if number_input == '1':
+                    index = 0
+                elif number_input == '2':
+                    index = 1
+                elif number_input == '3':
+                    index = 2
                 else:
-                    self.respond(sender, 'Could not find the place you were looking for.')
+                    self.respond(sender, 'Choose a number between 1 and 3. ' + number_input + ' is not valid.')
 
+                if index != -1:
+                    places = query_place_names(params[1])[0]
+                    if len(places) >= 1:
+                        url = places[index][1].replace('forecast.xml', 'forecast_hour_by_hour.xml')
+                        name = places[index][0]
+                        r = requests.get(url)
+                        self.send_yr_xml(sender, r.content, name)
+                    else:
+                        self.respond(sender, 'Could not find the place you were looking for.')
 
             elif len(params) > 3:
-                self.respond(sender, 'Too many arguments: Use "!forecast some_place first"')
+                self.respond(sender, 'Too many arguments: Use "!forecast some_place <number>"')
 
-    def send_yr_xml(self, sender, xml):
+    def send_yr_xml(self, sender, xml, area_name):
         root = ET.fromstring(xml)
         next_hour = root.find('forecast').find('tabular')[0]
         weather = next_hour.find('symbol').attrib['name']
@@ -301,9 +312,10 @@ class bot:
         temp_unit = next_hour.find('temperature').attrib['unit']
         wind_direction = next_hour.find('windDirection').attrib['name']
         wind_speed = next_hour.find('windSpeed').attrib['name']
-        self.respond(sender, "Forecast for the next hour:")
-        self.respond(sender, "Weather: {} Temp: {} WindDirection: {} WindSpeed: {}".format(weather, (temp + " " + temp_unit),
-                                                                               wind_direction, wind_speed))
+        self.respond(sender, "Forecast for the next hour for {}:".format(area_name))
+        self.respond(sender,
+                     "Weather: {} Temp: {} WindDirection: {} WindSpeed: {}".format(weather, (temp + " " + temp_unit),
+                                                                                   wind_direction, wind_speed))
 
     def convert_long_url(self, message, sender):
         try:
