@@ -296,12 +296,13 @@ class bot:
     def send_yr_xml(self, sender, xml):
         root = ET.fromstring(xml)
         next_hour = root.find('forecast').find('tabular')[0]
+        weather = next_hour.find('symbol').attrib['name']
         temp = next_hour.find('temperature').attrib['value']
         temp_unit = next_hour.find('temperature').attrib['unit']
         wind_direction = next_hour.find('windDirection').attrib['name']
         wind_speed = next_hour.find('windSpeed').attrib['name']
         self.respond(sender, "Forecast for the next hour:")
-        self.respond(sender, "Temp: {} WindDirection: {} WindSpeed: {}".format((temp + " " + temp_unit),
+        self.respond(sender, "Weather: {} Temp: {} WindDirection: {} WindSpeed: {}".format(weather, (temp + " " + temp_unit),
                                                                                wind_direction, wind_speed))
 
     def convert_long_url(self, message, sender):
