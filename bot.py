@@ -1,6 +1,6 @@
 import socket, ssl, datetime, json, time, re, sqlite3, random, requests, traceback
 from functions import get_sender, get_message, get_name, get_random_joke, react_leet, print_split_lines, \
-    update_streak_graph
+    update_streak_graph, query_place_names
 from xml.etree import ElementTree as ET
 from urlshortener import shorten_url
 
@@ -112,7 +112,8 @@ class bot:
             if not userid:
                 cursor.execute("INSERT INTO User (nick) VALUES (?);", (nick,))
                 uid = cursor.lastrowid
-                cursor.execute("INSERT INTO Score (user_id, score, streak,server_id) VALUES (?,?,?,?);", (uid, 1,1,self.server_id))
+                cursor.execute("INSERT INTO Score (user_id, score, streak,server_id) VALUES (?,?,?,?);",
+                               (uid, 1, 1, self.server_id))
                 print("Added " + str(uid) + " as a new user.")
             # If a users exists, but no score. Add new score.
             else:
@@ -168,7 +169,6 @@ class bot:
 
         for nick in uniquelist:
             self.update_score(nick)
-
 
         conn.commit()
         conn.close()
@@ -258,22 +258,51 @@ class bot:
                 print("Error logging urls")
 
     def fetch_weather_forecast(self, sender, message):
-        if "!forecast" in message:
-            r = requests.get("http://www.yr.no/place/Norway/Hordaland/Bergen/Bergen/forecast_hour_by_hour.xml")
-            root = ET.fromstring(r.content)
+        if message.startswith('!forecast'):
+            params = message.rstrip().split(' ')
+            if len(params) == 1:
+                r = requests.get("http://www.yr.no/place/Norway/Hordaland/Bergen/Bergen/forecast_hour_by_hour.xml")
+                self.send_yr_xml(sender, r.content)
 
-            next_hour = root.find('forecast').find('tabular')[0]
-            from_time = next_hour.attrib['from']
-            to_time = next_hour.attrib['to']
-            temp = next_hour.find('temperature').attrib['value']
-            temp_unit = next_hour.find('temperature').attrib['unit']
-            wind_direction = next_hour.find('windDirection').attrib['name']
-            wind_speed = next_hour.find('windSpeed').attrib['name']
+            elif len(params) == 2:
+                places = query_place_names(params[1])[0]
 
-            self.s.send(bytes("PRIVMSG {} :Forecast for the next hour\n\r".format(sender), "UTF-8"))
-            self.s.send(bytes(
-                "PRIVMSG {} :Temp: {} WindDirection: {} WindSpeed: {}\n\r".format(sender, (temp + " " + temp_unit),
-                                                                                  wind_direction, wind_speed), "UTF-8"))
+                if len(places) == 1:
+                    url = places[0][1].replace('forecast.xml', 'forecast_hour_by_hour.xml')
+                    print(url)
+                    r = requests.get(url)
+                    self.send_yr_xml(sender, r.content)
+
+                elif len(places) > 1:
+                    response_string = 'Found several places: '
+                    for place in places:
+                        response_string = response_string + place[0] + ', '
+                    response_string = response_string + ' Pick one or use first as third parameter to pick first. Underscores(_) are used instead of spaces.'
+                    self.respond(sender, response_string)
+            elif len(params) == 3 and params[2].lower() == 'first':
+                places = query_place_names(params[1])[0]
+                if len(places) >= 1:
+                    url = places[0][1].replace('forecast.xml', 'forecast_hour_by_hour.xml')
+                    print(url)
+                    r = requests.get(url)
+                    self.send_yr_xml(sender, r.content)
+                else:
+                    self.respond(sender, 'Could not find the place you were looking for.')
+
+
+            elif len(params) > 3:
+                self.respond(sender, 'Too many arguments: Use "!forecast some_place first"')
+
+    def send_yr_xml(self, sender, xml):
+        root = ET.fromstring(xml)
+        next_hour = root.find('forecast').find('tabular')[0]
+        temp = next_hour.find('temperature').attrib['value']
+        temp_unit = next_hour.find('temperature').attrib['unit']
+        wind_direction = next_hour.find('windDirection').attrib['name']
+        wind_speed = next_hour.find('windSpeed').attrib['name']
+        self.respond(sender, "Forecast for the next hour:")
+        self.respond(sender, "Temp: {} WindDirection: {} WindSpeed: {}".format((temp + " " + temp_unit),
+                                                                               wind_direction, wind_speed))
 
     def convert_long_url(self, message, sender):
         try:

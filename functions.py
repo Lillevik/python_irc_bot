@@ -61,9 +61,25 @@ def update_streak_graph(serverid):
     now = datetime.now()
     for score in score_data:
         conn.execute("INSERT INTO Graph_data (day, streak, user_id, server_id) VALUES (?,?,?,?);",
-                     (now.date(), score[3],score[1], serverid))
+                     (now.date(), score[3], score[1], serverid))
     conn.commit()
     conn.close()
+
+
+def query_place_names(place_name):
+    conn = sqlite3.connect('places.db')
+    result = conn.execute("SELECT Stadnamn, engelskXml FROM noreg where Stadnamn LIKE ? LIMIT 3;", ('%' + place_name + '%',))
+    rows = result.fetchall()
+    place_type = 'norge'
+    if rows:
+        return rows, place_type
+    else:
+        result = conn.execute("SELECT StadnamnBokmal, engelskXml FROM verda where StadnamnBokmal LIKE ? LIMIT 3;", ('%' + place_name + '%',))
+        rows = result.fetchall()
+        place_type = 'verden'
+
+    return rows, place_type
+
 
 
 
@@ -75,3 +91,5 @@ def run_bots(bots):
         except:
             print(bot.host)
             print("Error: unable to start thread")
+
+
