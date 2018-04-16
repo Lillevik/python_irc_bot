@@ -68,13 +68,13 @@ def update_streak_graph(serverid):
 
 def query_place_names(place_name):
     conn = sqlite3.connect('places.db')
-    result = conn.execute("SELECT Stadnamn, engelskXml FROM noreg where Stadnamn LIKE ? ORDER BY Prioritet ASC LIMIT 3;", ('%' + place_name + '%',))
+    result = conn.execute("SELECT Stadnamn, engelskXml, Kommune FROM noreg where Stadnamn LIKE ? ORDER BY Prioritet ASC LIMIT 3;", ('%' + place_name + '%',))
     rows = result.fetchall()
     place_type = 'norge'
     if rows:
         return rows, place_type
     else:
-        result = conn.execute("SELECT StadnamnBokmal, engelskXml FROM verda where StadnamnBokmal LIKE ? LIMIT 3;", ('%' + place_name + '%',))
+        result = conn.execute("SELECT StadnamnBokmal, engelskXml, LandsnamnBokmål FROM verda where StadnamnBokmal LIKE ? LIMIT 3;", ('%' + place_name + '%',))
         rows = result.fetchall()
         place_type = 'verden'
 

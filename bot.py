@@ -269,14 +269,14 @@ class bot:
 
                 if len(places) == 1:
                     url = places[0][1].replace('forecast.xml', 'forecast_hour_by_hour.xml')
-                    name = places[0][0]
+                    name = places[0][0] + ', ' + places[0][2]
                     r = requests.get(url)
                     self.send_yr_xml(sender, r.content, name)
 
                 elif len(places) > 1:
                     response_string = 'Found several places: '
                     for place in places:
-                        response_string = response_string + place[0] + ', '
+                        response_string = response_string + '(' + place[0] + ', ' + place[2] + '), '
                     response_string = response_string + ' Pick one using the order they appear(1,2 or 3). Underscores(_) are used instead of spaces.'
                     self.respond(sender, response_string)
             elif len(params) == 3:
@@ -295,7 +295,8 @@ class bot:
                     places = query_place_names(params[1])[0]
                     if len(places) >= 1:
                         url = places[index][1].replace('forecast.xml', 'forecast_hour_by_hour.xml')
-                        name = places[index][0]
+                        name = places[index][0] + ', ' + places[index][2]
+
                         r = requests.get(url)
                         self.send_yr_xml(sender, r.content, name)
                     else:
