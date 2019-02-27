@@ -1,4 +1,4 @@
-import socket, ssl, datetime, json, time, re, sqlite3, random, requests, traceback
+import socket, ssl, datetime, time, re, sqlite3, random, requests, traceback
 from functions import get_sender, get_message, get_name, get_random_joke, react_leet, print_split_lines, \
     update_streak_graph, query_place_names
 from xml.etree import ElementTree as ET
@@ -35,7 +35,6 @@ class bot:
 
             conn.commit()
             conn.close()
-            print(self.server_id)
         except Exception as e:
             print(e)
             print("Error: Loading leet log.")
@@ -63,7 +62,7 @@ class bot:
         except IndexError:
             print(msg)
             if self.errors < 5:
-                self.errors = self.errors + 1
+                self.errors += 1
                 print('Error trying to join channel.. number of errors: ' + str(self.errors))
             else:
                 self.connect_to_server()
@@ -73,7 +72,7 @@ class bot:
         try:
             words = m.split(" ")
             if words[0].lower() == "hello" or m == 'hello\r':
-                self.s.send(bytes("PRIVMSG {} :Hello, {}\r\n".format(sender, nick), "UTF-8"))
+                self.respond(sender, "Hello, {}".format(nick))
         except (AttributeError, IndexError):
             return ""
 
@@ -83,19 +82,16 @@ class bot:
             if " " in msg:
                 words = msg.split(" ")
             if msg == '!roll\r':
-                self.s.send(
-                    bytes("PRIVMSG {} :{} rolled: {} (1 - 100)\n\r".format(respondTo, nick, random.randint(1, 100)),
-                          "UTF-8"))
+                self.respond(respondTo, "{} rolled: {} (1 - 100)".format(nick, random.randint(1, 100)))
             elif words[0] == "!roll":
-                self.s.send(bytes("PRIVMSG {} :{} rolled: {} ({} - {})\n\r".format(respondTo, nick, random.randint(
-                    int(words[1]), int(words[2].split('\r')[0])), words[1], words[2]), "UTF-8"))
-        except:
+                self.respond(respondTo, "{} rolled: {} ({} - {})".format(nick, random.randint(int(words[1]), int(words[2].split('\r')[0])), words[1], words[2]))
+        except Exception as e:
+            print(e)
             print('Error rolling.')
 
     def update_score(self, nick, streakLost=False):
         conn = sqlite3.connect("leet.db")
         cursor = conn.cursor()
-        print(nick)
 
         # Check if there exists a score for the users
         user_score = cursor.execute("""
@@ -112,16 +108,16 @@ class bot:
             if not userid:
                 cursor.execute("INSERT INTO User (nick) VALUES (?);", (nick,))
                 uid = cursor.lastrowid
-                cursor.execute("INSERT INTO Score (user_id, score, streak,server_id) VALUES (?,?,?,?);",
-                               (uid, 1, 1, self.server_id))
+                cursor.execute("INSERT INTO Score (user_id, score, streak,server_id, cash) VALUES (?,?,?,?,?);",
+                               (uid, 1, 1, self.server_id, 10))
                 print("Added " + str(uid) + " as a new user.")
-            # If a users exists, but no score. Add new score.
+            # If a user exists, but no score. Add new score.
             else:
                 cursor.execute("INSERT INTO Score (user_id, score, streak, server_id) VALUES (?,?,?,?);",
                                (userid, 1, 1, self.server_id))
         elif user_score and not streakLost:
             cursor.execute(
-                "UPDATE  Score SET score = score + 1, streak = streak + 1 WHERE user_id = ? AND server_id = ?;",
+                "UPDATE  Score SET score = score + 1, streak = streak + 1 , cash = cash + ((streak + 1) * 10)  WHERE user_id = 1 AND server_id = 1;",
                 (user_score[0], self.server_id))
         elif user_score and streakLost:
             cursor.execute("UPDATE Score SET streak = 0 WHERE Score.user_id"
@@ -146,12 +142,10 @@ class bot:
                 elif current == last:
                     congr += "and {}.".format(person)
                 current += 1
-            s.send(bytes("PRIVMSG {} :{}\n\r".format(self.channel, congr), "UTF-8"))
-            s.send(bytes("PRIVMSG {} :Everyone else, shaaaaaame!\n\r".format(self.channel), "UTF-8"))
+            self.respond(self.channel, "{}".format(self.channel, congr))
+            self.respond(self.channel, "Everyone else, shaaaaaame!")
         elif len(self.leets) == 0:
-            s.send(
-                bytes("PRIVMSG {} :Noone remembered Leet! Shame on everyone! Shaaaame!\n\r".format(self.channel),
-                      "UTF-8"))
+            self.respond(self.channel, "Noone remembered Leet! Shame on everyone! Shaaaame!")
 
     def log_winners(self):
         conn = sqlite3.connect("leet.db")
@@ -178,8 +172,7 @@ class bot:
     def send_random_joke(self, msg, sender):
         try:
             if "!joke" in msg:
-                self.s.send(
-                    bytes("PRIVMSG {} :{}\n\r".format(sender, get_random_joke()), "UTF-8"))
+                self.respond("{}".format(sender, get_random_joke()))
         except TypeError:
             print()
 
@@ -230,11 +223,9 @@ class bot:
                         url_string += s[0] + ", "
                     else:
                         url_string += s[0] + "."
-                self.s.send(
-                    bytes("PRIVMSG {} :{}\n\r".format(sender, url_string), "UTF-8"))
+                self.respond("{}".format(sender, url_string))
         except Exception as e:
-            print(self.host)
-            print(traceback.format_exc())
+            print(self.host, traceback.format_exc())
 
     def log_urls(self, input_string, sender, nick):
         urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
@@ -277,7 +268,8 @@ class bot:
                     response_string = 'Found several places: '
                     for place in places:
                         response_string = response_string + '(' + place[0] + ', ' + place[2] + '), '
-                    response_string = response_string + ' Pick one using the order they appear(1,2 or 3). Underscores(_) are used instead of spaces.'
+                    response_string = response_string + 'Pick one using the order they appear(1,2 or 3). Underscores(' \
+                                                        '_) are used instead of spaces. '
                     self.respond(sender, response_string)
             elif len(params) == 3:
                 index = -1
@@ -323,19 +315,9 @@ class bot:
             words = message.split(" ")
             if words[0] == "!u":
                 short_url = shorten_url(words[1])
-                self.s.send(
-                    bytes("PRIVMSG {} :{}\n\r".format(sender, "Your short url: " + short_url), "UTF-8"))
+                self.respond(sender, "Your short url: " + short_url)
         except Exception as e:
             print(e)
-
-    def fetch_course_info(self, sender, message):
-        if "!exam" in message:
-            try:
-                code = message.split(" ")[1].strip().upper()
-                self.respond(sender, "https://eksamen.lillevik.pw/?course=" + code)
-            except Exception as e:
-                self.respond(sender, "Error finding course...")
-                print(traceback.format_exc())
 
     def respond(self, sender, message):
         self.s.send(
@@ -366,4 +348,3 @@ class bot:
             self.send_urls(message, sender)
             self.convert_long_url(message, sender)
             self.fetch_weather_forecast(sender, message)
-            self.fetch_course_info(sender, message)

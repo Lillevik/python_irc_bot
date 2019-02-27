@@ -54,7 +54,7 @@ def print_split_lines(text):
 def update_streak_graph(serverid):
     conn = sqlite3.connect("leet.db")
     score_data = conn.cursor().execute("""
-    SELECT User.nick, Score.user_id, Score.score, Score.streak, Score.server_id 
+    SELECT User.nick, Score.user_id, Score.score, Score.streak, Score.server_id, Score.cash
     FROM Score 
     JOIN User ON Score.user_id = User.id 
     WHERE server_id = ?;""", (serverid,)).fetchall()
@@ -62,6 +62,7 @@ def update_streak_graph(serverid):
     for score in score_data:
         conn.execute("INSERT INTO Graph_data (day, streak, user_id, server_id) VALUES (?,?,?,?);",
                      (now.date(), score[3], score[1], serverid))
+        conn.execute("UPDATE Score SET cash = ? WHERE Score.server_id = ? AND Score.user_id = ?;", ((score[3] * 10), score[4], score[1]))
     conn.commit()
     conn.close()
 
@@ -77,10 +78,7 @@ def query_place_names(place_name):
         result = conn.execute("SELECT StadnamnBokmal, engelskXml, LandsnamnBokmål FROM verda where StadnamnBokmal LIKE ? LIMIT 3;", ('%' + place_name + '%',))
         rows = result.fetchall()
         place_type = 'verden'
-
     return rows, place_type
-
-
 
 
 def run_bots(bots):
