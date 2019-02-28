@@ -93,18 +93,15 @@ class bot:
         conn = sqlite3.connect("leet.db")
         cursor = conn.cursor()
 
-        # Check if there exists a score for the users
+        # Check if there exists a score for the user
         user_score = cursor.execute("""
         SELECT User.id, Score.score, Score.streak 
         FROM User JOIN Score ON User.id = Score.user_id
         WHERE User.nick = ? AND Score.server_id = ?;""", (nick, self.server_id)).fetchone()
 
         if not user_score:
-            print(user_score)
             # If no score or users exists, create the users and update the score.
             userid = cursor.execute("SELECT id FROM User WHERE nick = ?;", (nick,)).fetchone()
-            print("UserID" + str(userid))
-
             if not userid:
                 cursor.execute("INSERT INTO User (nick) VALUES (?);", (nick,))
                 uid = cursor.lastrowid
@@ -117,11 +114,10 @@ class bot:
                                (userid, 1, 1, self.server_id))
         elif user_score and not streakLost:
             cursor.execute(
-                "UPDATE  Score SET score = score + 1, streak = streak + 1 , cash = cash + ((streak + 1) * 10)  WHERE user_id = 1 AND server_id = 1;",
+                "UPDATE  Score SET score = score + 1, streak = streak + 1 , cash = cash + ((streak + 1) * 10)  WHERE user_id = ? AND server_id = ?;",
                 (user_score[0], self.server_id))
         elif user_score and streakLost:
-            cursor.execute("UPDATE Score SET streak = 0 WHERE Score.user_id"
-                           " = ? AND Score.server_id = ?;", (user_score[0], self.server_id))
+            cursor.execute("UPDATE Score SET streak = 0 WHERE Score.user_id = ? AND Score.server_id = ?;", (user_score[0], self.server_id))
         else:
             print(user_score)
 
@@ -142,7 +138,7 @@ class bot:
                 elif current == last:
                     congr += "and {}.".format(person)
                 current += 1
-            self.respond(self.channel, "{}".format(self.channel, congr))
+            self.respond(self.channel, "{}".format(congr))
             self.respond(self.channel, "Everyone else, shaaaaaame!")
         elif len(self.leets) == 0:
             self.respond(self.channel, "Noone remembered Leet! Shame on everyone! Shaaaame!")
