@@ -46,8 +46,8 @@ def react_leet(msg, a, n):
 
 
 def print_split_lines(text):
-    if not 'PING' in text:
-        for line in text:
+    for line in text:
+        if not "PING" in line:
             print(line)
 
 

@@ -1,6 +1,22 @@
-import socket, ssl, datetime, time, re, sqlite3, random, requests, traceback
-from functions import get_sender, get_message, get_name, get_random_joke, react_leet, print_split_lines, \
-    update_streak_graph, query_place_names
+import socket
+import ssl
+import datetime
+import time
+import re
+import sqlite3
+import random
+import requests
+import traceback
+import sys
+import errno
+from functions import get_sender
+from functions import get_message
+from functions import get_name
+from functions import get_random_joke
+from functions import react_leet
+from functions import print_split_lines
+from functions import update_streak_graph
+from functions import query_place_names
 from xml.etree import ElementTree as ET
 from urlshortener import shorten_url
 
@@ -14,7 +30,7 @@ class bot:
         self.realname = realname
         self.master = master
         self.channel = channel
-        self.sock = socket.socket()
+        self.sock = None
         self.s = None
         self.leets = []
         self.errors = 0
@@ -40,12 +56,17 @@ class bot:
             print("Error: Loading leet log.")
 
     def connect_to_server(self):
-        self.s = ssl.wrap_socket(self.sock)
-        self.s.connect((self.host, self.port))
-
-        self.s.send(bytes("NICK {}\r\n".format(self.nick), "UTF-8"))
-        self.s.send(bytes("USER {} {} bla :{}\r\n".format(self.ident, self.host, self.realname), "UTF-8"))
-
+        try:
+            self.sock = socket.socket()
+            self.s = ssl.wrap_socket(self.sock)
+            self.s.connect((self.host, self.port))
+            self.s.send(bytes("NICK {}\r\n".format(self.nick), "UTF-8"))
+            self.s.send(bytes("USER {} {} bla :{}\r\n".format(self.ident, self.host, self.realname), "UTF-8"))
+            return True
+        except Exception as e:
+            print(e)
+            print("Error while connecting")
+            return False
     def respond_to_ping(self, lines):
         for line in lines:
             line = str.rstrip(line)
@@ -57,15 +78,14 @@ class bot:
         try:
             if len(msg):
                 if "PRIVMSG" not in msg[0] and "PING" not in msg[0]:
-                    print(msg[0])
                     self.s.send(bytes("JOIN {}\r\n".format(self.channel), "UTF-8"))
-        except IndexError:
-            print(msg)
-            if self.errors < 5:
+        except IndexError as e:
+            print(e)
+            if self.errors < 5:                
                 self.errors += 1
+                self.connect_to_server()
                 print('Error trying to join channel.. number of errors: ' + str(self.errors))
             else:
-                self.connect_to_server()
                 print('Attempting to reconnect..')
 
     def respond_hello(self, m, nick, sender):
@@ -117,7 +137,7 @@ class bot:
                 "UPDATE  Score SET score = score + 1, streak = streak + 1 , cash = cash + ((streak + 1) * 10)  WHERE user_id = ? AND server_id = ?;",
                 (user_score[0], self.server_id))
         elif user_score and streakLost:
-            cursor.execute("UPDATE Score SET streak = 0 WHERE Score.user_id = ? AND Score.server_id = ?;", (user_score[0], self.server_id))
+            cursor.execute("UPDATE Score SET streak = 0, cash = cash + 10 WHERE Score.user_id = ? AND Score.server_id = ?;", (user_score[0], self.server_id))
         else:
             print(user_score)
 
@@ -323,24 +343,37 @@ class bot:
         readbuffer = ""
         self.connect_to_server()
         self.load_leet_log()
-        while 1:
-            readbuffer = readbuffer + self.s.recv(1024).decode("UTF-8")
-            temp = readbuffer.split("\n")
-            readbuffer = temp.pop()
-            print_split_lines(temp)
+        active_pipe = True
+        while active_pipe:
+            try:
+                readbuffer = readbuffer + self.s.recv(1024).decode("UTF-8")
+                temp = readbuffer.split("\n")
+                readbuffer = temp.pop()
+                print("")
+                print_split_lines(temp)
 
-            self.respond_to_ping(temp)
-            self.join_channel(temp)
+                self.respond_to_ping(temp)
+                self.join_channel(temp)
 
-            nick = str(get_name(temp))
-            message = str(get_message(temp))
-            sender = str(get_sender(temp, nick))
+                nick = str(get_name(temp))
+                message = str(get_message(temp))
+                sender = str(get_sender(temp, nick))
 
-            self.respond_hello(message, nick, sender)
-            react_leet(message, self.leets, nick)
-            self.respond_roll(message, nick, sender)
-            self.send_random_joke(message, sender)
-            self.log_urls(message, sender, nick)
-            self.send_urls(message, sender)
-            self.convert_long_url(message, sender)
-            self.fetch_weather_forecast(sender, message)
+                self.respond_hello(message, nick, sender)
+                react_leet(message, self.leets, nick)
+                self.respond_roll(message, nick, sender)
+                self.send_random_joke(message, sender)
+                self.log_urls(message, sender, nick)
+                self.send_urls(message, sender)
+                self.convert_long_url(message, sender)
+                self.fetch_weather_forecast(sender, message)
+            except IOError as e:
+                if e.errno == errno.EPIPE:
+                    attempts = 0
+                    while not self.connect_to_server() and attempts < 10:
+                        attempts += 1
+                        time.sleep(30)
+                else:
+                    print(e)
+                    print("Unhandled exception: Exiting {}".format(self.host))
+                    active_pipe = False
