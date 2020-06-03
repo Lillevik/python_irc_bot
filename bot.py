@@ -190,7 +190,9 @@ class bot:
             if "!joke" in msg:
                 self.respond("{}".format(sender, get_random_joke()))
         except TypeError:
-            print()
+            print("Type error joke")
+        except Exception:
+            print("Unknown exception joke")
 
     def check_time(self):
         while 1:
@@ -215,7 +217,6 @@ class bot:
 
                 url_string = "The 5 last urls: "
                 urls = cursor.fetchall()
-                print(urls)
                 if not len(urls):
                     urls = [("", " nothing to show.")]
                 conn.close()
@@ -261,7 +262,6 @@ class bot:
                                        (url, nick, date, self.host, sender))
                 conn.commit()
             except Exception as e:
-                print(e)
                 print("Error logging urls")
 
     def fetch_weather_forecast(self, sender, message):
@@ -349,7 +349,6 @@ class bot:
                 readbuffer = readbuffer + self.s.recv(1024).decode("UTF-8")
                 temp = readbuffer.split("\n")
                 readbuffer = temp.pop()
-                print("")
                 print_split_lines(temp)
 
                 self.respond_to_ping(temp)
@@ -377,3 +376,5 @@ class bot:
                     print(e)
                     print("Unhandled exception: Exiting {}".format(self.host))
                     active_pipe = False
+            except Exception as e:
+                print("Unknown exception", e)
