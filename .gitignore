@@ -94,6 +94,5 @@ ENV/
 *.db
 
 run.py
-config.py
 todo/
 leetlog/
