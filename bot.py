@@ -17,6 +17,7 @@ from functions import react_leet
 from functions import print_split_lines
 from functions import update_streak_graph
 from functions import query_place_names
+from functions import get_help
 from xml.etree import ElementTree as ET
 from urlshortener import shorten_url
 
@@ -334,6 +335,16 @@ class bot:
                 self.respond(sender, "Your short url: " + short_url)
         except Exception as e:
             print(e)
+    
+    def send_help(self, message, sender):
+        try:
+            words = message.split(" ")
+            if words[0].rstrip() == "!help":
+                help_message = get_help(message)
+                self.respond(sender, help_message)
+        except Exception as e:
+            print(e)
+
 
     def respond(self, sender, message):
         self.s.send(
@@ -364,6 +375,7 @@ class bot:
                 self.send_random_joke(message, sender)
                 self.log_urls(message, sender, nick)
                 self.send_urls(message, sender)
+                self.send_help(message, sender)
                 self.convert_long_url(message, sender)
                 self.fetch_weather_forecast(sender, message)
             except IOError as e:

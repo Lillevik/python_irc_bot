@@ -80,6 +80,21 @@ def query_place_names(place_name):
         place_type = 'verden'
     return rows, place_type
 
+def get_help(message):
+    commands = {
+        "!help" : "Lists available commands.",
+        "!roll" : "Responds with a number between 1-100.",
+        "!forecast" : "Responds with the forecast for the next hour in Bergen, Norway",
+        "!u [longurl]" : "Responds with a shortened url passed through the goo.gl api.",
+        "!urls" : "Returns the last 5 urls for the sender channel or nick.",
+        "!joke" : "Responds with a random joke from the chucknorris joke api, category nerdy.",
+        "hello" : "Responds with hello"
+    }
+    words = message.split(" ")
+    if len(words) > 1:
+        return commands[words[1].rstrip()]
+    return "Available commands are: " + ", ".join(commands.keys())
+
 
 def run_bots(bots):
     for bot in bots:
