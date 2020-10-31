@@ -9,6 +9,8 @@ The score is simply stored in a json file.
 
 To run the bot, just enter valid server information in run.py.
 
+There are known issues with disconnection handling at this time.
+
 ### example:
 ```
 b = bot('irc.example.com', 6697, 'Nick', 'ident', 'realname', 'master', '#channel')
