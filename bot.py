@@ -18,8 +18,11 @@ from functions import print_split_lines
 from functions import update_streak_graph
 from functions import query_place_names
 from functions import get_help
+from helpers.SqlHelper import get_sql_procedure
 from xml.etree import ElementTree as ET
 from urlshortener import shorten_url
+
+
 
 
 class bot:
@@ -36,6 +39,7 @@ class bot:
         self.leets = []
         self.errors = 0
         self.server_id = 0
+
 
     def load_leet_log(self):
         try:
@@ -115,10 +119,7 @@ class bot:
         cursor = conn.cursor()
 
         # Check if there exists a score for the user
-        user_score = cursor.execute("""
-        SELECT User.id, Score.score, Score.streak 
-        FROM User JOIN Score ON User.id = Score.user_id
-        WHERE User.nick = ? AND Score.server_id = ?;""", (nick, self.server_id)).fetchone()
+        user_score = cursor.execute(get_sql_procedure("score_exists"), (nick, self.server_id)).fetchone()
 
         if not user_score:
             # If no score or users exists, create the users and update the score.
