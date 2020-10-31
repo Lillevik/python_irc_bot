@@ -93,6 +93,5 @@ ENV/
 *.sqlite
 *.db
 
-run.py
 todo/
 leetlog/
