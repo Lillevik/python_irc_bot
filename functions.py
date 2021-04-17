@@ -34,15 +34,35 @@ def get_random_joke():
     return json.loads(requests.get("http://api.icndb.com/jokes/random?limitTo=[nerdy]").text)['value']['joke']
 
 
+def is_fine(msg):
+    fine = True
+    # Dirty but passable
+    illegal = "qazwsxedcrfvtgbyhnujmik,lo-øpåæ'¨\+0987654321!\"^\#¤%&/()=?`<>*`'"
+    for c in msg:
+        if c in illegal:
+            fine = False
+
+    if not fine and '.' not in msg:
+        fine = False
+
+    return fine
+
+
+def is_valid_leet(msg):
+    """ Check if msg is a valid 'leetable' message. """
+    isspace = msg.isspace()
+    ait = is_fine(msg)
+    return isspace or ait
+
+
 def react_leet(msg, a, n):
     if msg:
-        if msg.isspace():
-            now = datetime.now()
-            if (now.hour == 13) and (now.minute == 37):
+        now = datetime.now()
+        is_leet = (now.hour == 13) and (now.minute == 37)
+        if is_leet:
+            if is_valid_leet(msg):
                 print("{} is on leet. [{}:{}:{}]".format(n, now.hour, now.minute, now.second))
                 a.append(n)
-            else:
-                print("{} is not on leet. [{}:{}:{}]".format(n, now.hour, now.minute, now.second))
 
 
 def print_split_lines(text):
@@ -55,8 +75,8 @@ def update_streak_graph(serverid):
     conn = sqlite3.connect("leet.db")
     score_data = conn.cursor().execute("""
     SELECT User.nick, Score.user_id, Score.score, Score.streak, Score.server_id, Score.cash
-    FROM Score 
-    JOIN User ON Score.user_id = User.id 
+    FROM Score
+    JOIN User ON Score.user_id = User.id
     WHERE server_id = ?;""", (serverid,)).fetchall()
     now = datetime.now()
     for score in score_data:
@@ -104,5 +124,3 @@ def run_bots(bots):
         except:
             print(bot.host)
             print("Error: unable to start thread")
-
-
