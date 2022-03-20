@@ -1,4 +1,7 @@
-import requests, json, datetime, threading
+import requests
+import json
+import datetime
+import threading
 from datetime import datetime
 import sqlite3
 
@@ -61,7 +64,8 @@ def react_leet(msg, a, n):
         is_leet = (now.hour == 13) and (now.minute == 37)
         if is_leet:
             if is_valid_leet(msg):
-                print("{} is on leet. [{}:{}:{}]".format(n, now.hour, now.minute, now.second))
+                print("{} is on leet. [{}:{}:{}]".format(
+                    n, now.hour, now.minute, now.second))
                 a.append(n)
 
 
@@ -82,33 +86,37 @@ def update_streak_graph(serverid):
     for score in score_data:
         conn.execute("INSERT INTO Graph_data (day, streak, user_id, server_id) VALUES (?,?,?,?);",
                      (now.date(), score[3], score[1], serverid))
-        conn.execute("UPDATE Score SET cash = ? WHERE Score.server_id = ? AND Score.user_id = ?;", ((score[3] * 10), score[4], score[1]))
+        conn.execute("UPDATE Score SET cash = ? WHERE Score.server_id = ? AND Score.user_id = ?;", ((
+            score[3] * 10), score[4], score[1]))
     conn.commit()
     conn.close()
 
 
 def query_place_names(place_name):
     conn = sqlite3.connect('places.db')
-    result = conn.execute("SELECT Stadnamn, engelskXml, Kommune FROM noreg where Stadnamn LIKE ? ORDER BY Prioritet ASC LIMIT 3;", ('%' + place_name + '%',))
+    result = conn.execute(
+        "SELECT Stadnamn, engelskXml, Kommune FROM noreg where Stadnamn LIKE ? ORDER BY Prioritet ASC LIMIT 3;", ('%' + place_name + '%',))
     rows = result.fetchall()
     place_type = 'norge'
     if rows:
         return rows, place_type
     else:
-        result = conn.execute("SELECT StadnamnBokmal, engelskXml, LandsnamnBokmål FROM verda where StadnamnBokmal LIKE ? LIMIT 3;", ('%' + place_name + '%',))
+        result = conn.execute(
+            "SELECT StadnamnBokmal, engelskXml, LandsnamnBokmål FROM verda where StadnamnBokmal LIKE ? LIMIT 3;", ('%' + place_name + '%',))
         rows = result.fetchall()
         place_type = 'verden'
     return rows, place_type
 
+
 def get_help(message):
     commands = {
-        "!help" : "Lists available commands.",
-        "!roll" : "Responds with a number between 1-100.",
-        "!forecast" : "Responds with the forecast for the next hour in Bergen, Norway",
-        "!u [longurl]" : "Responds with a shortened url passed through the goo.gl api.",
-        "!urls" : "Returns the last 5 urls for the sender channel or nick.",
-        "!joke" : "Responds with a random joke from the chucknorris joke api, category nerdy.",
-        "hello" : "Responds with hello"
+        "!help": "Lists available commands.",
+        "!roll": "Responds with a number between 1-100.",
+        "!forecast": "Responds with the forecast for the next hour in Bergen, Norway",
+        "!u [longurl]": "Responds with a shortened url passed through the goo.gl api.",
+        "!urls": "Returns the last 5 urls for the sender channel or nick.",
+        "!joke": "Responds with a random joke from the chucknorris joke api, category nerdy.",
+        "hello": "Responds with hello"
     }
     words = message.split(" ")
     if len(words) > 1:
