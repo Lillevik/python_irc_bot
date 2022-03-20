@@ -90,8 +90,8 @@ ENV/
 /.idea
 
 
-*.sqlite
-*.db
+db.sqlite
+leet.db
 
 todo/
 leetlog/
