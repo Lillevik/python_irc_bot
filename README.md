@@ -7,16 +7,12 @@ This is an irc bot written in python 3.5.
 The bot was made for counting counting leet score when people type a space at 1337.
 The score is simply stored in a json file.
 
-To run the bot, just enter valid server information in run.py.
+To run the bot, update your server information in run.py and run it using
 
-There are known issues with disconnection handling at this time.
+```
+python3 run.py
+```
 
-### example:
-```
-b = bot('irc.example.com', 6697, 'Nick', 'ident', 'realname', 'master', '#channel')
-bots.append(b)
-run_bots(bots)
-```
 
 ### Available commands:
 ```!roll```
