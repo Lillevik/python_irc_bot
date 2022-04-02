@@ -8,8 +8,6 @@ from utils import get_message
 from utils import get_name
 from utils import react_leet
 from utils import print_split_lines
-from utils import get_help
-from helpers.SqlHelper import get_sql_procedure
 from modules.convert_long_url import convert_long_url
 from modules.forecast import fetch_weather_forecast
 from modules.hello import respond_hello
@@ -111,6 +109,8 @@ class bot:
                 send_urls(self, message, sender)
                 send_help(self, message, sender)
                 convert_long_url(self, message, sender)
+
+                # Deprecated and needs a rewrite
                 fetch_weather_forecast(self, sender, message)
             except IOError as e:
                 if e.errno == errno.EPIPE:

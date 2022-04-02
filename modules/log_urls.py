@@ -1,6 +1,7 @@
 from datetime import datetime
 import re
 import sqlite3
+from traceback import format_exc
 from urlshortener import shorten_url
 
 
@@ -12,7 +13,7 @@ def log_urls(self, input_string, sender, nick):
             conn = sqlite3.connect('db.sqlite')
             cursor = conn.cursor()
             for url in urls:
-                date = datetime.datetime.now().strftime("%d/%m/%Y")
+                date = datetime.now().strftime("%d/%m/%Y")
                 if len(url) > 100:
                     short_url = shorten_url(url)
                     cursor.execute("INSERT INTO urls (url, nick, added_date, hostname, sender) VALUES (?,?,?,?,?);",
@@ -23,3 +24,4 @@ def log_urls(self, input_string, sender, nick):
             conn.commit()
         except Exception as e:
             print("Error logging urls")
+            print(format_exc(e))

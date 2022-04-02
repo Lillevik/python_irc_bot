@@ -29,7 +29,7 @@ def update_score(self, nick, streakLost=False):
     cursor = conn.cursor()
 
     # Check if there exists a score for the user
-    user_score = cursor.execute(get_sql_procedure()(
+    user_score = cursor.execute(get_sql_procedure(
         "score_exists"), (nick, self.server_id)).fetchone()
 
     if not user_score:
@@ -91,10 +91,10 @@ def log_winners(self):
     for user in users:
         nick = user[0]
         if nick in uniquelist:
-            self.update_score(nick)
+            update_score(self, nick)
             uniquelist.remove(nick)
         else:
-            self.update_score(nick, streakLost=True)
+            update_score(self, nick, streakLost=True)
 
     for nick in uniquelist:
         update_score(self, nick)
