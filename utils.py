@@ -40,7 +40,8 @@ def get_random_chuck_joke():
 def get_random_dad_joke():
     response = requests.get("https://icanhazdadjoke.com/",
                             headers={"Accept": "application/json"})
-    return json.loads(response)["joke"]
+    print(response.text)
+    return json.loads(response.text)["joke"]
 
 
 def is_fine(msg):
