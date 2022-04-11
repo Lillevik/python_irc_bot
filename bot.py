@@ -3,6 +3,7 @@ import ssl
 import datetime
 import time
 import errno
+from modules.dad_joke import dad_joke
 from utils import get_sender
 from utils import get_message
 from utils import get_name
@@ -12,7 +13,7 @@ from modules.convert_long_url import convert_long_url
 from modules.forecast import fetch_weather_forecast
 from modules.hello import respond_hello
 from modules.help import send_help
-from modules.joke import send_random_joke
+from modules.chuck_joke import chuck_joke
 from modules.leet_log import load_leet_log, log_winners
 from modules.log_urls import log_urls
 from modules.roll import respond_roll
@@ -91,8 +92,8 @@ class bot:
             try:
                 readbuffer = readbuffer + self.s.recv(1024).decode("UTF-8")
                 lines = readbuffer.split("\n")
+                print(type(lines), lines)
                 readbuffer = lines.pop()
-                print_split_lines(lines)
 
                 self.respond_to_ping(lines)
                 self.join_channel(lines)
@@ -100,12 +101,14 @@ class bot:
                 nick = str(get_name(lines))
                 message = str(get_message(lines))
                 sender = str(get_sender(lines, nick))
+                print_split_lines(lines)
 
                 log_urls(self, message, sender, nick)
                 respond_hello(self, message, nick, sender)
                 react_leet(message, self.leets, nick)
                 respond_roll(self, message, nick, sender)
-                send_random_joke(self, message, sender)
+                chuck_joke(self, message, sender)
+                dad_joke(self, message, sender)
                 send_urls(self, message, sender)
                 send_help(self, message, sender)
                 convert_long_url(self, message, sender)

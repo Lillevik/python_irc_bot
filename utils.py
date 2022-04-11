@@ -6,20 +6,20 @@ from datetime import datetime
 import sqlite3
 
 
-def get_name(msg):
+def get_name(lines):
     try:
-        if "PRIVMSG" in msg[0]:
-            return msg[0].split('!')[0].split(':')[1]
+        if "PRIVMSG" in lines[0]:
+            return lines[0].split('!')[0].split(':')[1]
     except IndexError:
-        return "Empty."
+        return ""
 
 
-def get_message(msg):
+def get_message(lines):
     try:
-        if "PRIVMSG" in msg[0]:
-            return msg[0].split(" :")[1]
+        if "PRIVMSG" in lines[0]:
+            return lines[0].split(" :")[1]
     except IndexError:
-        return "Empty."
+        return ""
 
 
 def get_sender(msg, nick):
@@ -33,8 +33,14 @@ def get_sender(msg, nick):
         return nick
 
 
-def get_random_joke():
+def get_random_chuck_joke():
     return json.loads(requests.get("http://api.icndb.com/jokes/random?limitTo=[nerdy]").text)['value']['joke']
+
+
+def get_random_dad_joke():
+    response = requests.get("https://icanhazdadjoke.com/",
+                            headers={"Accept": "application/json"})
+    return json.loads(response)["joke"]
 
 
 def is_fine(msg):
@@ -69,10 +75,16 @@ def react_leet(msg, a, n):
                 a.append(n)
 
 
+def print_with_time_prefix(line):
+    now = datetime.now()
+    msg = "[{}] {}".format(now.strftime("%Y-%m-%dT%H:%M:%S"), line)
+    print(msg)
+
+
 def print_split_lines(text):
     for line in text:
         if not "PING" in line:
-            print(line)
+            print_with_time_prefix(line)
 
 
 def update_streak_graph(serverid):

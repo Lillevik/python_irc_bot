@@ -42,4 +42,5 @@ def send_urls(self, message, sender):
                     url_string += s[0] + "."
             self.respond("{}".format(sender, url_string))
     except Exception as e:
+        print("Error sending urls")
         print(self.host, traceback.format_exc())
